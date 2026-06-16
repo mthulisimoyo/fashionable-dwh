@@ -49,14 +49,14 @@ shipped + priced lines (`order_status like 'Shipped%' and amount is not null`).
 
 
 Tests are defined in the `_*.yml` files next to each model and run with
-dbt build`:
+dbt build:
 
 
 - **Keys:** `not_null` + `unique` on surrogate keys.
 - **Referential:** `relationships` from every `fact_sales` FK to its dimension.
 - **Domain / range:** `dbt_utils.accepted_range` on `quantity` and `net_revenue`.
 - **Conformity:** `dbt_expectations.expect_table_row_count_to_equal_other_table`
-  (fact vs intermediate — guards against row loss / fan-out).`
+  (fact vs intermediate — guards against row loss / fan-out).
 
 
 ## Requirements
