@@ -1,0 +1,105 @@
+version: 2
+
+models:
+  - name: stg__sales_report
+    description:
+      Cleaned sales lines with non-destructive transformations (1:1 with the seed).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - order_id
+              - sku
+            config:
+              severity: warn
+    columns:
+      - name: source_id
+        description: source PK needed for lineage and debugging
+        data_tests:
+          - not_null
+          - unique
+      - name: order_id
+        description: Order identifier (1 order can have multiple lines)
+        data_tests:
+          - not_null
+      - name: sku
+        description: Stock Keeping Unit - identifier for the product
+        data_tests:
+          - not_null
+      - name: order_date
+        description: Order date parsed from MM-DD-YY
+        data_tests:
+          - not_null
+      - name: order_status
+        description: Raw order status (13 distinct values)
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'Cancelled'
+                  - 'Pending'
+                  - 'Pending - Waiting for Pick Up'
+                  - 'Shipped'
+                  - 'Shipped - Delivered to Buyer'
+                  - 'Shipped - Damaged'
+                  - 'Shipped - Returned to Seller'
+                  - 'Shipped - Rejected by Buyer'
+                  - 'Shipped - Lost in Transit'
+                  - 'Shipped - Returning to Seller'
+                  - 'Shipped - Out for Delivery'
+                  - 'Shipped - Picked Up'
+                  - 'Shipping'
+      - name: fulfilment
+        description: Who fulfils the order
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Fashionable', 'Merchant']
+      - name: sales_channel
+        description: The channel through which the order was placed (2 distinct values)
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Fashionable.in', 'Non-Fashionable']
+      - name: product_category
+        description: Product category (9 distinct values)
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Set', 'kurta', 'Western Dress', 'Top', 'Blouse', 'Ethnic Dress', 'Bottom', 'Saree', 'Dupatta']
+      - name: quantity
+        description: Units on the line
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+                arguments:
+                  min_value: 0
+      - name: amount
+        description: Line revenue in INR
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 100000
+                row_condition: "amount is not null"
+      - name: ship_postal_code
+        description: Postal Code
+        data_tests:
+          - dbt_expectations.expect_column_values_to_match_regex:
+              arguments:
+                regex: "^[1-9][0-9]{5}$"
+                row_condition: "ship_postal_code is not null"
+      - name: currency
+        description: Transaction currency
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['INR']
+              config:
+                where: "currency is not null"
+      - name: is_b2b
+        description: Whether the line is a B2B order
+        data_tests:
+          - not_null

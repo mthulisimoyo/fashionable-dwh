@@ -1,0 +1,8 @@
+fashionable_dwh:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: 'fashionable.duckdb'
+      schema: main
+      threads: 4

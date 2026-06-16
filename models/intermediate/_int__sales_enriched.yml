@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: int__sales_enriched
+    description:
+      Sales lines enriched with surrogate dimension keys and derived measures (revenue)
+    columns:
+      - name: sales_key
+        data_tests:
+          - not_null
+          - unique
+      - name: product_key
+        data_tests:
+          - not_null
+      - name: customer_key
+        data_tests:
+          - not_null
+      - name: date_key
+        data_tests:
+          - not_null
+      - name: channel_key
+        data_tests:
+          - not_null
