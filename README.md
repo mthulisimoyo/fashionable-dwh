@@ -44,6 +44,8 @@ in `int__sales_enriched` and re-derived in each dimension, guaranteeing
 referential integrity. `revenue` / `is_valid_sale` are recognised only on
 shipped + priced lines (`order_status like 'Shipped%' and amount is not null`).
 
+## Star Schema
+![Fashionable Dimensional Model](./images/Fashionable.png)
 
 ## Data quality tests
 
