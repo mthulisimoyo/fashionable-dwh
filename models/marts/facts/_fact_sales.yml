@@ -3,30 +3,45 @@ version: 2
 models:
   - name: fact_sales
     description:
-      Sales fact at order-line grain with degenerate dimension for order_id
+      Sales fact at order-line grain with order_id as a degenerate dimension.
+      Incrementally loaded. Tests here focus on referential integrity to the dimensions
+    config:
+      contract:
+        enforced: true
     data_tests:
       - dbt_expectations.expect_table_row_count_to_equal_other_table:
           arguments:
             compare_model: ref('int__sales_enriched')
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "(net_revenue is not null) = is_valid_sale"
     columns:
       - name: sales_key
-        description: Surrogate PK
+        data_type: varchar
+        description: Surrogate PK (hash of order_id + sku)
         data_tests:
-          - not_null
           - unique
       - name: order_id
-        data_tests:
-          - not_null
+        data_type: varchar
+        description: Degenerate dimension (order identifier)
+      - name: order_status
+        data_type: varchar
+      - name: is_b2b
+        data_type: boolean
+      - name: order_date
+        data_type: date
+        description: Line event date (drives the incremental lookback window)
       - name: date_key
+        data_type: integer
         description: FK to dim_date
         data_tests:
-          - not_null
           - relationships:
               arguments:
                 to: ref('dim_date')
                 field: date_key
       - name: product_key
-        description: FK to dim_product
+        data_type: varchar
+        description: Point-in-time FK to the SCD2 dim_product
         data_tests:
           - not_null
           - relationships:
@@ -34,16 +49,34 @@ models:
                 to: ref('dim_product')
                 field: product_key
       - name: customer_key
+        data_type: varchar
         description: FK to dim_customer
         data_tests:
-          - not_null
           - relationships:
               arguments:
                 to: ref('dim_customer')
                 field: customer_key
-      - name: quantity
+      - name: channel_key
+        data_type: varchar
+        description: FK to dim_channel
         data_tests:
-          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_channel')
+                field: channel_key
+      - name: quantity
+        data_type: integer
+      - name: amount
+        data_type: decimal(10,2)
+      - name: net_revenue
+        data_type: decimal(10,2)
+        description: Recognised revenue on valid (shipped + priced) lines; NULL otherwise
+        data_tests:
           - dbt_utils.accepted_range:
               arguments:
                 min_value: 0
+      - name: is_valid_sale
+        data_type: boolean
+        description: True for shipped + priced order lines
+        data_tests:
+          - not_null

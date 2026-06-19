@@ -10,8 +10,8 @@ select
     source_id,
     order_id,
     order_date,
-    {{ dbt_utils.generate_surrogate_key(['source_id']) }} as sales_key,
-    {{ dbt_utils.generate_surrogate_key(['sku']) }}   as product_key,
+    {{ dbt_utils.generate_surrogate_key(['order_id', 'sku']) }} as sales_key,
+    {{ dbt_utils.generate_surrogate_key(['sku']) }}   as product_natural_key,
     {{ dbt_utils.generate_surrogate_key(['ship_country', 
         'ship_state', 'ship_city', 'ship_postal_code']) }} as customer_key,
     {{ dbt_utils.generate_surrogate_key(['sales_channel', 'fulfilment', 'ship_service_level',
@@ -37,8 +37,8 @@ select
 
     quantity,
     amount,
-    case when order_status='Shipped' then amount else 0 end as revenue,
-    (order_status = 'Shipped' and amount is not null) as is_valid_sale,
+    case when {{is_valid_sale('order_status', 'amount')}} then amount end as revenue,
+    {{is_valid_sale('order_status', 'amount')}} as is_valid_sale,
     is_b2b,
     row_num
 

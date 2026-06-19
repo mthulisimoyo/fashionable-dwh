@@ -4,14 +4,18 @@ models:
   - name: int__sales_enriched
     description:
       Sales lines enriched with surrogate dimension keys and derived measures (revenue)
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - order_id
+              - sku
     columns:
       - name: sales_key
+        description: Business-grain surrogate PK (hash of order_id + sku)
         data_tests:
           - not_null
           - unique
-      - name: product_key
-        data_tests:
-          - not_null
       - name: customer_key
         data_tests:
           - not_null

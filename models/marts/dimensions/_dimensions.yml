@@ -1,0 +1,133 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: Conformed date dimension (one row per calendar day).
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: date_key
+        data_type: integer
+        description: Surrogate PK (YYYYMMDD integer)
+        data_tests:
+          - not_null
+          - unique
+      - name: full_date
+        data_type: date
+      - name: year
+        data_type: bigint
+      - name: quarter
+        data_type: bigint
+      - name: month_number
+        data_type: bigint
+      - name: month_name
+        data_type: varchar
+      - name: week_of_year
+        data_type: bigint
+      - name: day_of_month
+        data_type: bigint
+      - name: day_of_week
+        data_type: bigint
+      - name: day_name
+        data_type: varchar
+      - name: is_weekend
+        data_type: boolean
+      - name: season
+        data_type: varchar
+
+  - name: dim_product
+    description: SCD2 product dimension (one row per SKU version).
+    config:
+      contract:
+        enforced: true
+    data_tests:
+      # exactly one current version per SKU
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - sku
+            config:
+              where: "is_current"
+      # is_current must agree with the open (sentinel) end date
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "is_current = (valid_to = date '9999-12-31')"
+      # SCD2 periods per SKU must be contiguous (no overlaps / gaps)
+      - contiguous_versions:
+          arguments:
+            key: sku
+    columns:
+      - name: product_key
+        data_type: varchar
+        description: Surrogate PK, unique per (sku, version)
+        data_tests:
+          - not_null
+          - unique
+      - name: product_natural_key
+        data_type: varchar
+        description: Durable SKU identity (shared across versions)
+        data_tests:
+          - not_null
+      - name: sku
+        data_type: varchar
+      - name: style
+        data_type: varchar
+      - name: asin
+        data_type: varchar
+      - name: product_category
+        data_type: varchar
+      - name: product_size
+        data_type: varchar
+      - name: valid_from
+        data_type: date
+        description: Version effective-from (earliest version floored to 1900-01-01)
+      - name: valid_to
+        data_type: date
+        description: Version effective-to (open versions set to 9999-12-31)
+      - name: is_current
+        data_type: boolean
+
+  - name: dim_customer
+    description: Conformed ship-to (address) dimension.
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: customer_key
+        data_type: varchar
+        description: Surrogate PK
+        data_tests:
+          - not_null
+          - unique
+      - name: ship_country
+        data_type: varchar
+      - name: ship_state
+        data_type: varchar
+      - name: ship_city
+        data_type: varchar
+      - name: ship_postal_code
+        data_type: varchar
+
+  - name: dim_channel
+    description: Conformed sales-channel / fulfilment dimension.
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: channel_key
+        data_type: varchar
+        description: Surrogate PK
+        data_tests:
+          - not_null
+          - unique
+      - name: sales_channel
+        data_type: varchar
+      - name: fulfilment
+        data_type: varchar
+      - name: ship_service_level
+        data_type: varchar
+      - name: courier_status
+        data_type: varchar
+      - name: fulfilled_by
+        data_type: varchar
