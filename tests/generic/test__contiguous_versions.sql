@@ -1,4 +1,4 @@
-{% test test__contiguous_versions(model, key, valid_from='valid_from', valid_to='valid_to') %}
+{% test fashionable__contiguous_versions(model, key, valid_from='valid_from', valid_to='valid_to') %}
 
 {%- set key_cols = [key] if key is string else key -%}
 {%- set partition_by = key_cols | join(', ') -%}
@@ -18,3 +18,5 @@ select *
 from contiguous
 where next_valid_from is not null
 and next_valid_from != valid_to
+
+{% endtest %}

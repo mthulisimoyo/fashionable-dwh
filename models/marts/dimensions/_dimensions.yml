@@ -42,19 +42,16 @@ models:
       contract:
         enforced: true
     data_tests:
-      # exactly one current version per SKU
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns:
               - sku
             config:
               where: "is_current"
-      # is_current must agree with the open (sentinel) end date
       - dbt_utils.expression_is_true:
           arguments:
             expression: "is_current = (valid_to = date '9999-12-31')"
-      # SCD2 periods per SKU must be contiguous (no overlaps / gaps)
-      - contiguous_versions:
+      - fashionable__contiguous_versions:
           arguments:
             key: sku
     columns:
@@ -110,7 +107,7 @@ models:
         data_type: varchar
 
   - name: dim_channel
-    description: Conformed sales-channel / fulfilment dimension.
+    description: Conformed sales-channel/fulfilment dimension.
     config:
       contract:
         enforced: true

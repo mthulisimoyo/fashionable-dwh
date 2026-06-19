@@ -14,7 +14,7 @@ models:
             compare_model: ref('int__sales_enriched')
       - dbt_utils.expression_is_true:
           arguments:
-            expression: "(net_revenue is not null) = is_valid_sale"
+            expression: "(revenue is not null) = is_valid_sale"
     columns:
       - name: sales_key
         data_type: varchar
@@ -28,9 +28,6 @@ models:
         data_type: varchar
       - name: is_b2b
         data_type: boolean
-      - name: order_date
-        data_type: date
-        description: Line event date (drives the incremental lookback window)
       - name: date_key
         data_type: integer
         description: FK to dim_date
@@ -68,7 +65,7 @@ models:
         data_type: integer
       - name: amount
         data_type: decimal(10,2)
-      - name: net_revenue
+      - name: revenue
         data_type: decimal(10,2)
         description: Recognised revenue on valid (shipped + priced) lines; NULL otherwise
         data_tests:
