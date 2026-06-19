@@ -9,7 +9,7 @@
 
 with sales as (
 
-    select 
+    select
         s.sales_key,
         s.order_id,
         s.order_status,
@@ -22,12 +22,17 @@ with sales as (
         s.quantity,
         s.amount,
         s.revenue
-    
-    from {{ ref('int__sales_enriched') }} s
-    left join {{ ref('dim_product') }} p 
-        on s.product_natural_key = p.product_natural_key
-        and s.order_date >= p.valid_from 
-        and s.order_date < p.valid_to
+
+    from {{ ref('int__sales_enriched') }} as s
+    left join {{ ref('dim_product') }} as p
+        on
+            s.product_natural_key = p.product_natural_key
+            and s.order_date >= p.valid_from
+            and s.order_date < p.valid_to
+
+    {% if is_incremental() %}
+        where s.order_date >= current_date - interval '7 days'
+    {% endif %}
 
 )
 

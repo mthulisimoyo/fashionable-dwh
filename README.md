@@ -1,67 +1,180 @@
-# fashionable_dwh
-
-
-A dimensional warehouse for **Fashionable** an eCommerce fashion
-retailer. Raw order-line data is modelled into a **star schema** with conformed
-dimensions and surrogate keys using **dbt**, materialised in a local **DuckDB**
-database, and explored through a **Streamlit** dashboard.
-
-
-## Business process & grain
-
-
-- **Process:** online fashion sales.
-- **Fact grain:** one row per **order line** (`order_id` + `sku`) — the lowest
-  transaction level in the source. This answers _what_ sells, _where_, _when_,
-  and _through which channel_. Rolling up to `order_id` would lose line detail.
-- Duplicate `(order_id, sku)` lines are de-duplicated in the intermediate layer
-  (latest source_id wins).
-
-
-## Architecture
-
-
-```
-Follows a Medallion Style Architecture with the Gold layer dimensionally modeled
-seed (raw CSV)  ->  staging  ->  intermediate  ->  marts (star schema)
-```
-
-
-| Layer | Model | Materialisation | Purpose |
-|-------|-------|-----------------|---------|
-| seed | `fashionable_sale_report` | table (`raw`) | Raw CSV loaded as all-VARCHAR (no silent coercion) |
-| staging | `stg__sales_report` | table (`staging`) | Trim, type-cast, parse `MM-DD-YY` dates, normalise nulls |
-| intermediate | `int__sales_enriched` | table (`intermediate`) | De-dup, conformed surrogate keys, derived measures (`revenue`, `is_valid_sale`, `date_key`) |
-| marts | `dim_date` | table (`marts`) | Date spine with season / weekend attributes |
-| marts | `dim_product` | table (`marts`) | SKU -> style / category / size |
-| marts | `dim_customer` | table (`marts`) | Ship-to geography (country / state / city / postal) |
-| marts | `dim_channel` | table (`marts`) | Sales channel, fulfilment, courier, service level |
-| marts | `fact_sales` | table (`marts`) | Order-line fact: FKs to all dims, `order_id` degenerate dimension, measures `quantity` / `amount` / `revenue` |
-
-
-**Surrogate keys** (`dbt_utils.generate_surrogate_key`) are generated identically
-in `int__sales_enriched` and re-derived in each dimension, guaranteeing
-referential integrity. `revenue` / `is_valid_sale` are recognised only on
-shipped + priced lines (`order_status like 'Shipped%' and amount is not null`).
-
 ## Star Schema
+
+The warehouse follows a dimensional modelling approach with a central sales fact table surrounded by conformed dimensions.
+
 ![Fashionable Dimensional Model](./images/Fashionable.png)
 
-## Data quality tests
+### Fact Table
 
+#### fact_sales
 
-Tests are defined in the `_*.yml` files next to each model and run with
-dbt build:
+The sales fact table contains transactional measures and foreign keys to supporting dimensions.
 
+**Grain**
 
-- **Keys:** `not_null` + `unique` on surrogate keys.
-- **Referential:** `relationships` from every `fact_sales` FK to its dimension.
-- **Domain / range:** `dbt_utils.accepted_range` on `quantity` and `net_revenue`.
-- **Conformity:** `dbt_expectations.expect_table_row_count_to_equal_other_table`
-  (fact vs intermediate — guards against row loss / fan-out).
+One row per:
 
+```text
+order_id + sku
+```
 
-## Requirements
+**Measures**
 
+- quantity
+- amount
+- revenue
 
-- Python 3.x 
+**Foreign Keys**
+
+- date_key
+- customer_key
+- product_key
+- channel_key
+
+### Dimensions
+
+#### dim_customer
+
+Contains customer attributes used for reporting and segmentation.
+
+#### dim_product
+
+Contains product attributes and tracks historical changes using SCD Type 2 methodology.
+
+Historical attributes are managed using:
+
+- valid_from
+- valid_to
+- is_current
+
+Fact records are joined to the product version that was valid at the time of the sale, ensuring historical reporting accuracy.
+
+#### dim_channel
+
+Contains sales channel and fulfilment attributes.
+
+#### dim_date
+
+Calendar dimension supporting time-based reporting and analysis.
+
+---
+
+## Incremental Processing
+
+The sales fact table is configured as an incremental model using a merge strategy.
+
+Benefits include:
+
+- Faster execution times
+- Reduced resource consumption
+- Support for updating existing records
+- Foundation for handling late-arriving data
+
+The current implementation demonstrates the incremental pattern and can be extended to include configurable lookback windows for production workloads.
+
+---
+
+## Data Quality Testing
+
+The project includes tests across multiple layers of the warehouse.
+
+### Source Integrity
+
+- Not null validation
+- Accepted values validation
+- Source key uniqueness checks
+
+### Referential Integrity
+
+- Fact-to-dimension relationship testing
+- Foreign key validation
+
+### Business Rule Validation
+
+- Revenue consistency checks
+- Valid sales identification checks
+- Fact grain validation
+
+### Historical Data Validation
+
+- Single current SCD record validation
+- Effective date range validation
+- Product history consistency checks
+
+---
+
+## Production Considerations and Future Enhancements
+
+This assessment was implemented using DuckDB and dbt to demonstrate core warehouse design principles. The focus was on building a maintainable dimensional model with strong testing and documentation. In a production environment, several enhancements would be considered to improve scalability, maintainability, and operational resilience.
+
+### Partitioning
+
+Large fact tables would typically be partitioned by:
+
+```text
+order_date
+```
+
+to improve query performance and reduce the amount of data scanned during reporting workloads.
+
+### Clustering
+
+Fact tables could be clustered on commonly filtered or joined columns such as:
+
+```text
+customer_key
+product_key
+channel_key
+```
+
+to improve query efficiency.
+
+### Late Arriving Data
+
+Production pipelines should support late-arriving or corrected records through:
+
+- Incremental merge strategies
+- Configurable lookback windows
+- Source update timestamps
+- Reprocessing of recent partitions
+
+### Change Data Capture (CDC)
+
+Where available, source-system CDC streams would be leveraged to reduce processing costs and improve data freshness.
+
+### Orchestration
+
+Production scheduling and dependency management could be implemented using:
+
+- Apache Airflow
+- Dagster
+- Azure Data Factory
+- dbt Cloud
+
+### CI/CD and Code Quality
+
+Future improvements include:
+
+- Automated testing in GitHub Actions
+- SQLFluff linting and formatting enforcement
+- Pull request validation pipelines
+- Automated documentation generation
+
+### Monitoring and Observability
+
+Additional production controls could include:
+
+- Data freshness monitoring
+- Failed pipeline alerting
+- Row count anomaly detection
+- Data quality dashboards
+
+### Cloud Data Warehouse Deployment
+
+The dimensional model is designed to be portable to cloud platforms such as:
+
+- Snowflake
+- BigQuery
+- Databricks
+
+with minimal modification to the dbt transformation layer.

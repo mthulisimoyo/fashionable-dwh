@@ -11,10 +11,6 @@ with customer as (
 
 )
 
-select  
-    customer_key,
-    coalesce(ship_country, 'Unknown') as ship_country,
-    coalesce(ship_state, 'Unknown') as ship_state,
-    coalesce(ship_city, 'Unknown') as ship_city,
-    coalesce(ship_postal_code, 'Unknown') as ship_postal_code
+select
+    *
 from customer
