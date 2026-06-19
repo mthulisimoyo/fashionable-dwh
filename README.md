@@ -1,4 +1,102 @@
-## Star Schema
+# Fashionable Data Warehouse
+
+## Overview
+
+This project implements a dimensional data warehouse for Fashionable sales data using dbt and DuckDB.
+
+The solution follows a layered architecture:
+
+```text
+Raw Data
+    │
+    ▼
+Staging
+    │
+    ▼
+Intermediate
+    │
+    ▼
+Dimensions + Facts
+    │
+    ▼
+Analytics / Dashboarding
+```
+
+### Objectives
+
+- Clean and standardize source data
+- Create conformed dimensions and a sales fact table
+- Implement data quality testing
+- Support historical analysis through Slowly Changing Dimensions (SCD Type 2)
+- Demonstrate scalable warehouse design patterns using dbt
+
+---
+
+## Technology Stack
+
+| Component | Technology |
+|------------|------------|
+| Transformation | dbt |
+| Database | DuckDB |
+| Testing | dbt Tests, dbt-utils, dbt-expectations |
+| Documentation | dbt Docs |
+| Dashboarding | Streamlit |
+
+---
+
+## Project Structure
+
+```text
+models/
+├── staging/
+├── intermediate/
+└── marts/
+    ├── dimensions/
+    └── facts/
+
+snapshots/
+tests/
+macros/
+```
+
+### Layer Responsibilities
+
+#### Staging
+
+Source standardisation and type enforcement.
+
+Responsibilities:
+
+- Rename source columns
+- Cast data types
+- Handle null values
+- Apply basic cleansing rules
+
+#### Intermediate
+
+Business logic layer.
+
+Responsibilities:
+
+- Deduplicate source records
+- Generate surrogate keys
+- Apply reusable business rules
+- Prepare dimensional structures
+
+#### Marts
+
+Analytics-ready dimensional model.
+
+Responsibilities:
+
+- Build dimensions
+- Build fact tables
+- Apply SCD logic
+- Expose curated reporting datasets
+
+---
+
+## Dimensional Model
 
 The warehouse follows a dimensional modelling approach with a central sales fact table surrounded by conformed dimensions.
 
